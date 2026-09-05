@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [clang++, g++]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake clang clang-format clang-tidy
+        pip install quom
+
+    - name: Verify code formatting
+      run: |
+        find include/plf_skiplist tests examples \( -name "*.cpp" -o -name "*.hpp" \) \
+          -not -path "include/plf_skiplist/plf_skiplist.hpp" -print0 \
+          | xargs -0 clang-format --dry-run --Werror
+
+    - name: Configure CMake
+      run: cmake -S . -B build -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} -DCMAKE_BUILD_TYPE=Release
+
+    - name: Run clang-tidy static analysis
+      if: matrix.compiler == 'clang++'
+      run: cmake --build build --target clang-tidy-check
+
+    - name: Build
+      run: cmake --build build --config Release
+
+    - name: Run tests
+      run: ctest --test-dir build --output-on-failure
+
+    - name: Test CMake Install & Package Export
+      run: |
+        cmake --install build --prefix build/install_test
+        test -f build/install_test/include/plf_skiplist/plf_skiplist.hpp
+        test -f build/install_test/share/cmake/plf-skiplist/plf-skiplistConfig.cmake
+
+  sanitizers:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        sanitize: [thread, "address,undefined"]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake clang
+        pip install quom
+
+    - name: Configure CMake
+      run: |
+        cmake -S . -B build \
+          -DCMAKE_CXX_COMPILER=clang++ \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DPLF_SKIPLIST_SANITIZE=${{ matrix.sanitize }}
+
+    - name: Build
+      run: cmake --build build --target test_plf_skiplist
+
+    - name: Run tests
+      run: TSAN_OPTIONS="suppressions=${{ github.workspace }}/tsan_suppressions.txt" ctest --test-dir build --output-on-failure

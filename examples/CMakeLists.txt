@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.16)
+
+add_executable(plf_skiplist_basic_usage basic_usage.cpp)
+target_link_libraries(plf_skiplist_basic_usage PRIVATE plf-skiplist plf_skiplist_warnings plf_skiplist_sanitizers)
+
+add_test(NAME plf_skiplist_basic_usage COMMAND plf_skiplist_basic_usage)
