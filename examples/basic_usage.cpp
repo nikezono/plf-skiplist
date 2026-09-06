@@ -11,7 +11,7 @@ namespace {
 
 constexpr int kExampleKey = 42;
 constexpr uint64_t kInitialValue = 100;
-constexpr int kMissingKey = 7;
+[[maybe_unused]] constexpr int kMissingKey = 7;
 constexpr uint64_t kUpdatedValue = 200;
 
 constexpr int kScanCount = 10;            // scan() demo populates and reads back keys [0, kScanCount)
