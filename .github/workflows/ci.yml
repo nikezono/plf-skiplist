@@ -82,7 +82,7 @@ jobs:
           -DPLF_SKIPLIST_SANITIZE=${{ matrix.sanitize }}
 
     - name: Build
-      run: cmake --build build --target test_plf_skiplist
+      run: cmake --build build
 
     - name: Run tests
       run: TSAN_OPTIONS="suppressions=${{ github.workspace }}/tsan_suppressions.txt" ctest --test-dir build --output-on-failure
